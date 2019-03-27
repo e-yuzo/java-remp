@@ -3,16 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.cps.security;
+package com.cps.security.key;
 
 /**
- * 
+ *
  * @author yuzo
- * Description: Bouncy Castle
  */
-public class Authentication {
+public class KeyGenerator {
     
-    public static void main(String[] args) {
+    private int size;
+    
+    public KeyGenerator() {
         
     }
 }

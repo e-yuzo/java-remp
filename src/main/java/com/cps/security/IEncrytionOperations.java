@@ -6,13 +6,11 @@
 package com.cps.security;
 
 /**
- * 
+ *
  * @author yuzo
- * Description: Bouncy Castle
  */
-public class Authentication {
+public interface IEncrytionOperations {
     
-    public static void main(String[] args) {
-        
-    }
+    public byte[] encryption(byte[] data); //add key argument: create another class
+    public byte[] decryption(byte[] data);
 }
