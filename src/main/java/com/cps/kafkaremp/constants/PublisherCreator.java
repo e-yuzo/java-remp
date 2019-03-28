@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 /**
  *
  * @author yuzo
+ * Description: class responsible for producer creation.
  */
 public class PublisherCreator {
     

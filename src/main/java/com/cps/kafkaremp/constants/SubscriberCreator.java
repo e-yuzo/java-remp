@@ -16,6 +16,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 /**
  *
  * @author yuzo
+ * class responsible for consumer creation.
  */
 public class SubscriberCreator {
 
