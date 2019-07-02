@@ -1,5 +1,8 @@
+
 package stream.k_stream;
 
+import java.security.Security;
+import java.util.Arrays;
 import stream.interfaces.KafkaConstantsInterface;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,15 +13,36 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import remp_operations.BrokerOperations;
+import utils.ProtocolStructureLength;
 
 /**
  *
  * @author yuzo
  */
 public class Stream {
-
-    public static String wat(String value) {
-        return "0";
+    
+    public static byte[] handleMessage(byte[] dataX, BrokerOperations bo) {
+        Security.addProvider(new BouncyCastleProvider());
+        bo.protocol = new ProtocolStructureLength("broker", dataX.length);
+        byte[] ticket = new byte[bo.protocol.ticket];
+        System.out.println(bo.protocol.ticket);
+        System.out.println(bo.protocol.xk);
+        System.out.println(bo.protocol.encryptedWithAI);
+        System.out.println(dataX.length);
+        System.arraycopy(dataX, bo.protocol.xk + bo.protocol.encryptedWithAI, ticket, 0, bo.protocol.ticket);
+        bo.decryptTicket(ticket, bo.tk);
+        //decrypting stuff that were encrypted with AI
+        System.out.println("STATE OF IDENTITY (TICKET): " + Arrays.toString(bo.i));
+        byte[] encryptedByAI = new byte[bo.protocol.encryptedWithAI];
+        System.arraycopy(dataX, bo.protocol.xk, encryptedByAI, 0, bo.protocol.encryptedWithAI);
+        bo.decryptEncryptedDataByAuthKey(encryptedByAI);
+        //create DATAy
+        byte[] xk = new byte[bo.protocol.xk];
+        System.arraycopy(dataX, 0, xk, 0, bo.protocol.xk);
+        byte[] dataY = bo.createDataY(xk);
+        return dataY;
     }
 
     public static void main(final String[] args) {
@@ -32,7 +56,7 @@ public class Stream {
         streamsConfiguration.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstantsInterface.KAFKA_BROKERS);
         // Specify default (de)serializers for record keys and for record values.
         streamsConfiguration.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
-        streamsConfiguration.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName()); //can convert to byteArray()
+        streamsConfiguration.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.ByteArray().getClass().getName()); //can convert to byteArray()
         // Security settings.
         // 1. These settings must match the security settings of the secure Kafka cluster.
         // 2. The SSL trust store and key store files must be locally accessible to the application.
@@ -48,19 +72,14 @@ public class Stream {
 //    streamsConfiguration.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, "test1234");
 
         final StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, String> source = builder.stream("Blue_Sea");
-        //source.to("Red_Sea");
-        // Write the input data as-is to the output topic.
-        //builder.stream("Blue_Sea").to("Red_Sea");
-
-        KStream<String, String> transformed = source.flatMap(//use filter with predicate to DELETE (method) records
-                // Here, we generate two output records for each input record.
-                // We also change the key and value types.
-                // Example: (345L, "Hello") -> ("HELLO", 1000), ("hello", 9000)
+        KStream<String, byte[]> source = builder.stream("Blue_Sea");
+        BrokerOperations bo = new BrokerOperations();
+        KStream<String, byte[]> transformed = source.flatMap(//use filter with predicate to DELETE (method) records
                 (key, value) -> {
-                    List<KeyValue<String, String>> result = new LinkedList<>();
-                    result.add(KeyValue.pair("i'm encrypted lol", value + "i think i'm encrypted"));
-                    result.add(KeyValue.pair("uc ant re a d me", value + "u cant readme md"));
+                    List<KeyValue<String, byte[]>> result = new LinkedList<>();
+                    System.out.println(value.length);
+                    byte[] v = handleMessage(value, bo);
+                    result.add(KeyValue.pair(key, v));
                     return result;
                 }
         );
